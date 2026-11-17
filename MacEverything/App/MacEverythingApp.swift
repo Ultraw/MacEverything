@@ -11,6 +11,11 @@ struct MacEverythingApp: App {
     @FocusedValue(\.toggleInformationPanel) private var toggleInformationPanel
     @FocusedValue(\.informationPanelVisible) private var informationPanelVisible
 
+    private func sortCommand(_ title: String, field: SortField, key: KeyEquivalent) -> some View {
+        Button(L10n.tr(title)) { SearchViewModel.sortActiveWindow(by: field) }
+            .keyboardShortcut(key, modifiers: [.command])
+    }
+
     var body: some Scene {
         WindowGroup("MacEverything", id: "search") {
             ContentView()
@@ -61,6 +66,14 @@ struct MacEverythingApp: App {
                     Label(L10n.tr("Export..."), systemImage: "square.and.arrow.down")
                 }
                 .disabled(canExportSearchResults != true)
+            }
+
+            CommandMenu("Sort") {
+                sortCommand("Name", field: .name, key: "1")
+                sortCommand("Path", field: .path, key: "2")
+                sortCommand("Date Created", field: .created, key: "3")
+                sortCommand("Modified Date", field: .modified, key: "4")
+                sortCommand("Size", field: .size, key: "5")
             }
 
             CommandGroup(after: .toolbar) {

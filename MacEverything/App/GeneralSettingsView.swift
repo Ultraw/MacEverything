@@ -558,6 +558,24 @@ struct GeneralSettingsView: View {
             .id(settings.language)
             .pickerStyle(.segmented)
 
+            GroupBox(L10n.tr("Result Columns")) {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Toggle(L10n.tr("Name"), isOn: $settings.showName)
+                        Toggle(L10n.tr("Path"), isOn: $settings.showPath)
+                        Toggle(L10n.tr("Ext"), isOn: $settings.showExtension)
+                    }
+                    HStack {
+                        Toggle(L10n.tr("Size"), isOn: $settings.showSize)
+                        Toggle(L10n.tr("Date Created"), isOn: $settings.showCreatedDate)
+                        Toggle(L10n.tr("Modified Date"), isOn: $settings.showModifiedDate)
+                    }
+                    Toggle(L10n.tr("Show time with dates"), isOn: $settings.showDateTime)
+                        .disabled(!settings.showCreatedDate && !settings.showModifiedDate)
+                }
+                .padding(.vertical, 4)
+            }
+
             GroupBox(L10n.tr("Colors")) {
                 VStack(alignment: .leading, spacing: 10) {
                     Picker(L10n.tr("Edit Colors For"), selection: $colorEditorMode) {

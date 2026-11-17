@@ -122,7 +122,7 @@ static std::string AppBundleVersion() {
         ServiceConfig config;
         config.appVersion = AppBundleVersion();
         config.scanRoot = "/";
-        config.cachePath = PathUtils::getDefaultCachePath();
+        config.cachePath = PathUtils::getHomeDirectory() + "/Library/Caches/com.maceverything.local11115";
         config.logPath = PathUtils::getDefaultLogPath();
         config.httpPort = 19860;
         _serviceEngine = std::make_shared<ServiceEngine>(config);
@@ -157,7 +157,7 @@ static std::string AppBundleVersion() {
     config.excludedPatterns = NSStringArrayToVector(excludedPatterns);
     config.contentRoots = NSStringArrayToVector(contentRoots);
     config.contentExcludedPaths = NSStringArrayToVector(contentExcludedPaths);
-    config.cachePath = PathUtils::getDefaultCachePath();
+    config.cachePath = PathUtils::getHomeDirectory() + "/Library/Caches/com.maceverything.local11115";
     config.logPath = PathUtils::getDefaultLogPath();
     config.httpPort = httpPort;
     config.httpAuthenticationEnabled = httpAuthenticationEnabled;

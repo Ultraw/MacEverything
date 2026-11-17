@@ -576,7 +576,7 @@ class SearchViewModel: ObservableObject {
         let base = NSSearchPathForDirectoriesInDomains(
             .cachesDirectory, .userDomainMask, true
         ).first ?? NSTemporaryDirectory()
-        let appCache = (base as NSString).appendingPathComponent("com.maceverything.app")
+        let appCache = (base as NSString).appendingPathComponent("com.maceverything.local11115")
         try? FileManager.default.createDirectory(
             atPath: appCache, withIntermediateDirectories: true
         )
@@ -1016,12 +1016,19 @@ class SearchViewModel: ObservableObject {
         }
     }
 
+    @MainActor
+    static func sortActiveWindow(by field: SortField) {
+        guard let window = NSApp.keyWindow ?? NSApp.mainWindow,
+              let model = activeByWindow.object(forKey: window) as? SearchViewModel else { return }
+        model.sortBy(field)
+    }
+
     func sortBy(_ field: SortField) {
         if settings.sortField == field {
             settings.sortAscending.toggle()
         } else {
             settings.sortField = field
-            settings.sortAscending = field == .modified || field == .size ? false : true
+            settings.sortAscending = field == .modified || field == .created || field == .size ? false : true
         }
         applySortedResults(pageSize: max(loadedCount, Self.pageSize))
     }
@@ -1315,6 +1322,10 @@ class SearchViewModel: ObservableObject {
                                            ascending: Bool) -> [FileItem] {
         guard field != .relevance else { return items }
 
+        let dates: [String: Date] = field == .created ? Dictionary(uniqueKeysWithValues: items.compactMap { item in
+            guard let date = try? URL(fileURLWithPath: item.fullPath).resourceValues(forKeys: [.creationDateKey]).creationDate else { return nil }
+            return (item.id, date)
+        }) : [:]
         let groupByType = field != .path
         return items.sorted { lhs, rhs in
             if groupByType {
@@ -1334,6 +1345,15 @@ class SearchViewModel: ObservableObject {
                 result = lhs.fullPath.localizedCaseInsensitiveCompare(rhs.fullPath)
             case .size:
                 result = lhs.size == rhs.size ? .orderedSame : (lhs.size < rhs.size ? .orderedAscending : .orderedDescending)
+            case .created:
+                let left = dates[lhs.id], right = dates[rhs.id]
+                if left == nil || right == nil {
+                    if left != nil { return true }
+                    if right != nil { return false }
+                    result = .orderedSame
+                } else {
+                    result = left! == right! ? .orderedSame : (left! < right! ? .orderedAscending : .orderedDescending)
+                }
             case .modified:
                 result = lhs.modTime == rhs.modTime ? .orderedSame : (lhs.modTime < rhs.modTime ? .orderedAscending : .orderedDescending)
             }

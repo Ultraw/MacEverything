@@ -39,6 +39,7 @@ enum SortField: String, CaseIterable, Codable, Identifiable, Sendable {
     case path
     case size
     case modified
+    case created
 
     var id: String { rawValue }
 
@@ -50,6 +51,7 @@ enum SortField: String, CaseIterable, Codable, Identifiable, Sendable {
         case .path: return L10n.tr("Path")
         case .size: return L10n.tr("Size")
         case .modified: return L10n.tr("Modified Date")
+        case .created: return L10n.tr("Date Created")
         }
     }
 }
@@ -221,6 +223,9 @@ final class AppSettings: ObservableObject {
         static let contentMaxFileSizeMB = "settings.contentMaxFileSizeMB"
         static let searchHistoryEnabled = "settings.searchHistoryEnabled"
         static let searchHistoryLimit = "settings.searchHistoryLimit"
+        static let showName = "settings.showName"
+        static let showCreatedDate = "settings.showCreatedDate"
+        static let showDateTime = "settings.showDateTime"
         static let showPath = "settings.showPath"
         static let showExtension = "settings.showExtension"
         static let showSize = "settings.showSize"
@@ -306,6 +311,9 @@ final class AppSettings: ObservableObject {
             save(value, Key.searchHistoryLimit)
         }
     }
+    @Published var showName: Bool { didSet { save(showName, Key.showName) } }
+    @Published var showCreatedDate: Bool { didSet { save(showCreatedDate, Key.showCreatedDate) } }
+    @Published var showDateTime: Bool { didSet { save(showDateTime, Key.showDateTime) } }
     @Published var showPath: Bool { didSet { save(showPath, Key.showPath) } }
     @Published var showExtension: Bool { didSet { save(showExtension, Key.showExtension) } }
     @Published var showSize: Bool { didSet { save(showSize, Key.showSize) } }
@@ -398,10 +406,13 @@ final class AppSettings: ObservableObject {
         contentMaxFileSizeMB = defaults.object(forKey: Key.contentMaxFileSizeMB) as? Double ?? 1.0
         searchHistoryEnabled = defaults.object(forKey: Key.searchHistoryEnabled) as? Bool ?? true
         searchHistoryLimit = clamped(defaults.object(forKey: Key.searchHistoryLimit) as? Int ?? 50, 10, 200)
+        showName = defaults.object(forKey: Key.showName) as? Bool ?? true
+        showCreatedDate = defaults.object(forKey: Key.showCreatedDate) as? Bool ?? true
+        showDateTime = defaults.object(forKey: Key.showDateTime) as? Bool ?? false
         showPath = defaults.object(forKey: Key.showPath) as? Bool ?? true
         showExtension = defaults.object(forKey: Key.showExtension) as? Bool ?? true
         showSize = defaults.object(forKey: Key.showSize) as? Bool ?? true
-        showModifiedDate = defaults.object(forKey: Key.showModifiedDate) as? Bool ?? false
+        showModifiedDate = defaults.object(forKey: Key.showModifiedDate) as? Bool ?? true
         showContentSnippets = defaults.object(forKey: Key.showContentSnippets) as? Bool ?? true
         resultDensity = ResultDensity(rawValue: defaults.string(forKey: Key.resultDensity) ?? "") ?? .comfortable
         httpServerEnabled = defaults.object(forKey: Key.httpServerEnabled) as? Bool ?? false
@@ -529,6 +540,13 @@ final class AppSettings: ObservableObject {
         fontSize = 13
         resultRowHeight = 38
         showThumbnails = true
+        showName = true
+        showPath = true
+        showExtension = true
+        showSize = true
+        showCreatedDate = true
+        showModifiedDate = true
+        showDateTime = false
         resultDisplayMode = .list
         inspectorDisplayMode = .adaptive
         gridIconSize = 128

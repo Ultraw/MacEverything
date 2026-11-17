@@ -4,7 +4,7 @@
 
 <h1 align="center">MacEverything</h1>
 
-<p align="center">最新正式版本：1.11.15 · Fork 自 <a href="https://github.com/joshua-wu/MacEverything">joshua-wu/MacEverything</a></p>
+<p align="center">基于 1.11.15 · Fork 自 <a href="https://github.com/ying-zhang/MacEverything">ying-zhang/MacEverything</a></p>
 
 <p align="center">
   <b>macOS 极速文件搜索工具</b> — 在数百万文件中毫秒级定位任意文件。<br/>
@@ -27,6 +27,17 @@
 <p align="center">
   <img src="assets/screen-shot.png" alt="MacEverything Screenshot" width="720" />
 </p>
+
+## 这个 Fork 的由来
+
+本仓库基于 [ying-zhang/MacEverything 1.11.15](https://github.com/ying-zhang/MacEverything/releases/tag/v1.11.15)。原 fork 未开启 GitHub Issues，因此在这里维护日常找文件和整理文件时需要的改动。项目最初由 [joshua-wu/MacEverything](https://github.com/joshua-wu/MacEverything) 发起。
+
+- **排序快捷键**：⌘1 文件名、⌘2 路径、⌘3 创建时间、⌘4 修改时间、⌘5 大小。再次按当前排序的快捷键可切换升降序。
+- **结果列**：创建时间和修改时间独立显示，默认只显示日期。在「设置 → 外观 → 结果显示列」可以选择显示哪些列，以及日期是否显示时分。
+- **列宽**：收紧扩展名、大小和日期列。路径列可以拖动，表头与结果行同步对齐。
+- **Finder 标签**：从文件结果的右键菜单给单个或多个文件添加彩色或自定义标签，也可以移除已有标签。菜单带图标，修改一个标签时保留其余标签。
+
+下文的下载链接指向上游发行包。上述改动已在 1.11.15 本地构建中测试。
 
 ## 功能亮点
 

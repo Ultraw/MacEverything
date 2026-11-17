@@ -254,6 +254,41 @@ struct FileItemContextMenu: View {
             FileActions.copyFilenames(actionItems)
         }
         Divider()
+        Menu {
+            ForEach(Array([( "Red", NSColor.systemRed), ("Orange", .systemOrange), ("Yellow", .systemYellow), ("Green", .systemGreen), ("Blue", .systemBlue), ("Purple", .systemPurple), ("Gray", .systemGray)].enumerated()), id: \.offset) { _, tag in
+                Button { addTag(tag.0) } label: {
+                    Label { Text(tag.0) } icon: { Image(nsImage: tagImage(tag.1)).renderingMode(.original) }
+                        .labelStyle(.titleAndIcon)
+                }
+            }
+            Button {
+                let alert = NSAlert()
+                alert.messageText = "Add Custom Tag"
+                let input = NSTextField(frame: NSRect(x: 0, y: 0, width: 240, height: 24))
+                alert.accessoryView = input
+                alert.addButton(withTitle: "Add")
+                alert.addButton(withTitle: "Cancel")
+                if alert.runModal() == .alertFirstButtonReturn { addTag(input.stringValue) }
+            } label: { Label("Custom Tag…", systemImage: "tag") }
+                .labelStyle(.titleAndIcon)
+        } label: {
+            Label("Add Tag", systemImage: "tag")
+        }
+        .labelStyle(.titleAndIcon)
+        Menu {
+            let tags = Set(actionItems.flatMap { item in
+                (try? URL(fileURLWithPath: item.fullPath).resourceValues(forKeys: [.tagNamesKey]).tagNames) ?? []
+            }).sorted()
+            if tags.isEmpty { Text("No Tags") }
+            ForEach(tags, id: \.self) { tag in
+                Button { removeTag(tag) } label: { Label(tag, systemImage: "tag") }
+                    .labelStyle(.titleAndIcon)
+            }
+        } label: {
+            Label("Remove Tag", systemImage: "tag.slash")
+        }
+        .labelStyle(.titleAndIcon)
+        Divider()
         Button(L10n.tr("Open in Terminal")) { FileActions.openInTerminal(item) }
             .disabled(actionItems.count != 1)
         Button(role: .destructive) {
@@ -263,6 +298,50 @@ struct FileItemContextMenu: View {
             Text(fileActionTitle("Move to Trash", multi: "Move %d Items to Trash", count: actionItems.count))
         }
     }
+    private func addTag(_ input: String) {
+        let tag = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !tag.isEmpty else { return }
+        var failures: [String] = []
+        for item in actionItems {
+            let url = URL(fileURLWithPath: item.fullPath)
+            do {
+                let tags = try url.resourceValues(forKeys: [.tagNamesKey]).tagNames ?? []
+                if !tags.contains(tag) { try (url as NSURL).setResourceValue(tags + [tag], forKey: .tagNamesKey) }
+            } catch { failures.append("\(item.fullPath): \(error.localizedDescription)") }
+        }
+        if !failures.isEmpty {
+            let alert = NSAlert()
+            alert.messageText = "Some tags could not be added"
+            alert.informativeText = failures.joined(separator: "\n")
+            alert.runModal()
+        }
+    }
+
+    private func removeTag(_ tag: String) {
+        var failures: [String] = []
+        for item in actionItems {
+            let url = URL(fileURLWithPath: item.fullPath)
+            do {
+                let tags = try url.resourceValues(forKeys: [.tagNamesKey]).tagNames ?? []
+                if tags.contains(tag) { try (url as NSURL).setResourceValue(tags.filter { $0 != tag }, forKey: .tagNamesKey) }
+            } catch { failures.append("\(item.fullPath): \(error.localizedDescription)") }
+        }
+        if !failures.isEmpty {
+            let alert = NSAlert()
+            alert.messageText = "Some tags could not be removed"
+            alert.informativeText = failures.joined(separator: "\n")
+            alert.runModal()
+        }
+    }
+
+    private func tagImage(_ color: NSColor) -> NSImage {
+        NSImage(size: NSSize(width: 16, height: 16), flipped: false) { _ in
+            color.setFill()
+            NSBezierPath(ovalIn: NSRect(x: 3, y: 3, width: 10, height: 10)).fill()
+            return true
+        }
+    }
+
 }
 
 func fileActionTitle(_ single: String, multi: String, count: Int) -> String {

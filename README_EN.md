@@ -4,7 +4,7 @@
 
 <h1 align="center">MacEverything</h1>
 
-<p align="center">Latest release: 1.11.15 · Forked from <a href="https://github.com/joshua-wu/MacEverything">joshua-wu/MacEverything</a></p>
+<p align="center">Based on 1.11.15 · Forked from <a href="https://github.com/ying-zhang/MacEverything">ying-zhang/MacEverything</a></p>
 
 <p align="center">
   <b>Instant file search for macOS</b> — find any file among millions in milliseconds.<br/>
@@ -27,6 +27,17 @@
 <p align="center">
   <img src="assets/screen-shot-en.png" alt="MacEverything Screenshot" width="720" />
 </p>
+
+## Why this fork exists
+
+This repository is based on [ying-zhang/MacEverything 1.11.15](https://github.com/ying-zhang/MacEverything/releases/tag/v1.11.15). That fork has GitHub Issues disabled, so this repository maintains changes for everyday file search and organization. The original project is [joshua-wu/MacEverything](https://github.com/joshua-wu/MacEverything).
+
+- **Sort shortcuts** — ⌘1 for name, ⌘2 for path, ⌘3 for creation time, ⌘4 for modification time, and ⌘5 for size. Press the active shortcut again to reverse the order.
+- **Result columns** — Creation and modification dates have separate columns. Both show only the date by default. Settings → Appearance → Result Columns controls which columns are visible and whether dates also show the time.
+- **Column widths** — Extension, size, and date columns use less space. Drag the path column to resize it, with headers and results staying aligned.
+- **Finder tags** — Use the file result context menu to add colored or custom tags, or remove a tag, on one or more files. Menu items display icons and unrelated tags are preserved.
+
+The download links below point to upstream releases. These changes were tested in a local 1.11.15 build.
 
 ## Feature Highlights
 

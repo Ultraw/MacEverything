@@ -16,6 +16,7 @@ struct ContentView: View {
     @State private var showingExport = false
     @State private var searchFieldFocusRequest = 0
     @State private var gridWidth: CGFloat = 800
+    @State private var resultColumnWidth: CGFloat = 0
     @State private var resultAreaWidth: CGFloat = 800
     @State private var inspectorVisibilityOverride: Bool?
 
@@ -271,7 +272,7 @@ struct ContentView: View {
 
                 if !viewModel.displayItems.isEmpty {
                     if settings.resultDisplayMode == .list {
-                        ResultHeaderView(viewModel: viewModel)
+                        ResultHeaderView(viewModel: viewModel, layoutWidth: $resultColumnWidth)
                             .environmentObject(columnLayout)
                             .padding(.horizontal, 8)
                     }
@@ -285,6 +286,7 @@ struct ContentView: View {
                             ForEach(viewModel.displayItems) { item in
                                 ResultRow(
                                     item: item,
+                                    layoutWidth: resultColumnWidth,
                                     hints: viewModel.highlightHints,
                                     isSelected: viewModel.selectedItemIDs.contains(item.id),
                                     requestedRename: viewModel.renameRequestedItemID == item.id,
@@ -896,53 +898,69 @@ private struct LoadingMoreResultsFooter: View {
 
 private struct ResultHeaderView: View {
     @ObservedObject var viewModel: SearchViewModel
+    @Binding var layoutWidth: CGFloat
     @ObservedObject private var settings = AppSettings.shared
     @EnvironmentObject private var columnLayout: ResultColumnLayout
 
     var body: some View {
         GeometryReader { proxy in
             let widths = columnLayout.resolvedWidths(
+                showName: settings.showName,
                 showPath: settings.showPath,
                 showExtension: settings.showExtension,
                 showSize: settings.showSize,
-                showModifiedDate: settings.showModifiedDate,
+                showCreated: settings.showCreatedDate,
+                showModified: settings.showModifiedDate,
+                showTime: settings.showDateTime,
                 availableWidth: proxy.size.width
             )
 
             HStack(spacing: 0) {
+                if settings.showName {
                 columnButton(L10n.tr("Name"), field: .name, width: widths.name)
-                    .resizableColumn(width: $columnLayout.nameWidth,
-                                     range: ResultColumnLayout.nameWidthRange)
+                    .resizableColumn(width: Binding(
+                        get: { widths.name },
+                        set: { columnLayout.pathWidth = max(0, widths.path - ($0 - widths.name)) }
+                    ), range: ResultColumnLayout.nameWidthRange)
+                }
 
                 if settings.showPath {
-                    columnSeparator
+                    if settings.showName { columnSeparator }
                     columnButton(L10n.tr("Path"), field: .path, width: widths.path)
-                        .resizableColumn(width: $columnLayout.pathWidth,
-                                         range: ResultColumnLayout.pathWidthRange)
+                        .resizableColumn(width: Binding(
+                            get: { widths.path },
+                            set: { columnLayout.pathWidth = $0 }
+                        ), range: ResultColumnLayout.pathWidthRange)
                 }
 
                 if settings.showExtension {
-                    columnSeparator
+                    if settings.showName || settings.showPath { columnSeparator }
                     columnButton(L10n.tr("Ext"), field: .ext, width: widths.ext)
                         .resizableColumn(width: $columnLayout.extWidth,
                                          range: ResultColumnLayout.extWidthRange)
                 }
 
                 if settings.showSize {
-                    columnSeparator
+                    if settings.showName || settings.showPath || settings.showExtension { columnSeparator }
                     columnButton(L10n.tr("Size"), field: .size, width: widths.size, alignment: .trailing)
                         .resizableColumn(width: $columnLayout.sizeWidth,
                                          range: ResultColumnLayout.sizeWidthRange)
                 }
 
+                if settings.showCreatedDate {
+                    if settings.showName || settings.showPath || settings.showExtension || settings.showSize { columnSeparator }
+                    columnButton(L10n.tr("Date Created"), field: .created, width: widths.created)
+                        .resizableColumn(width: $columnLayout.createdWidth, range: ResultColumnLayout.modifiedWidthRange)
+                }
                 if settings.showModifiedDate {
-                    columnSeparator
+                    if settings.showName || settings.showPath || settings.showExtension || settings.showSize || settings.showCreatedDate { columnSeparator }
                     columnButton(L10n.tr("Modified Date"), field: .modified, width: widths.modified)
-                        .resizableColumn(width: $columnLayout.modifiedWidth,
-                                         range: ResultColumnLayout.modifiedWidthRange)
+                        .resizableColumn(width: $columnLayout.modifiedWidth, range: ResultColumnLayout.modifiedWidthRange)
                 }
             }
             .padding(.horizontal, 6)
+            .onAppear { layoutWidth = proxy.size.width }
+            .onChange(of: proxy.size.width) { layoutWidth = proxy.size.width }
         }
         .frame(height: 22)
         .background(Color(nsColor: .controlBackgroundColor))
@@ -983,7 +1001,6 @@ private struct ResultHeaderView: View {
             }
             .font(.caption)
             .foregroundColor(.secondary)
-            .padding(.horizontal, 5)
             .frame(width: width, alignment: alignment)
             .frame(maxWidth: width == nil ? .infinity : nil, alignment: alignment)
             .frame(height: 22, alignment: alignment)

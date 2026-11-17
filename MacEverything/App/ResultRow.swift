@@ -87,7 +87,14 @@ final class FileIconCache: ObservableObject {
 }
 
 struct ResultRow: View {
+    private static let columnDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd HH:mm"
+        return formatter
+    }()
     let item: FileItem
+    let layoutWidth: CGFloat
     let hints: [HighlightHint]
     let isSelected: Bool
     let requestedRename: Bool
@@ -99,6 +106,17 @@ struct ResultRow: View {
     @ObservedObject private var settings = AppSettings.shared
     @ObservedObject private var iconCache = FileIconCache.shared
     @ObservedObject private var thumbnailService = ThumbnailService.shared
+    private static let dateOnlyFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter
+    }()
+
+    private func columnDate(_ date: Date) -> String {
+        (settings.showDateTime ? Self.columnDateFormatter : Self.dateOnlyFormatter).string(from: date)
+    }
+
     @EnvironmentObject private var columnLayout: ResultColumnLayout
     @EnvironmentObject private var theme: ThemeManager
     @State private var isHovered = false
@@ -114,11 +132,14 @@ struct ResultRow: View {
         )
         GeometryReader { proxy in
             rowContent(rowHeight: rowHeight, widths: columnLayout.resolvedWidths(
+                showName: settings.showName,
                 showPath: settings.showPath,
                 showExtension: settings.showExtension,
                 showSize: settings.showSize,
-                showModifiedDate: settings.showModifiedDate,
-                availableWidth: proxy.size.width
+                showCreated: settings.showCreatedDate,
+                showModified: settings.showModifiedDate,
+                showTime: settings.showDateTime,
+                availableWidth: layoutWidth > 0 ? layoutWidth : proxy.size.width
             ))
         }
         .frame(height: rowHeight)
@@ -134,6 +155,7 @@ struct ResultRow: View {
             pathFont: theme.bodyFont, pathColor: .secondary)
 
         return HStack(spacing: 10) {
+            if settings.showName {
             HStack(spacing: 8) {
                 fileVisual(for: item, pixelSize: iconSize)
                     .resizable()
@@ -149,6 +171,7 @@ struct ResultRow: View {
                 }
             }
             .frame(width: widths.name, alignment: .leading)
+            }
 
             if settings.showPath {
                 highlighted.pathText
@@ -174,12 +197,15 @@ struct ResultRow: View {
                     .frame(width: widths.size, alignment: .trailing)
             }
 
+            if settings.showCreatedDate {
+            Text((try? URL(fileURLWithPath: item.fullPath).resourceValues(forKeys: [.creationDateKey]).creationDate).map(columnDate) ?? "—")
+                .font(theme.bodyFont).foregroundColor(.secondary).lineLimit(1)
+                .frame(width: widths.created, alignment: .leading)
+            }
             if settings.showModifiedDate {
-                Text(formatDate(item.modTime))
-                    .font(theme.bodyFont)
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
-                    .frame(width: widths.modified, alignment: .leading)
+            Text(columnDate(Date(timeIntervalSince1970: TimeInterval(item.modTime))))
+                .font(theme.bodyFont).foregroundColor(.secondary).lineLimit(1)
+                .frame(width: widths.modified, alignment: .leading)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -327,51 +353,38 @@ struct ResolvedResultColumnWidths {
     let path: CGFloat
     let ext: CGFloat
     let size: CGFloat
+    let created: CGFloat
     let modified: CGFloat
 }
 
 final class ResultColumnLayout: ObservableObject {
-    static let nameWidthRange: ClosedRange<CGFloat> = 160...520
-    static let pathWidthRange: ClosedRange<CGFloat> = 180...800
-    static let extWidthRange: ClosedRange<CGFloat> = 52...120
-    static let sizeWidthRange: ClosedRange<CGFloat> = 72...150
-    static let modifiedWidthRange: ClosedRange<CGFloat> = 120...240
+    static let nameWidthRange: ClosedRange<CGFloat> = 80...1000
+    static let pathWidthRange: ClosedRange<CGFloat> = 80...1600
+    static let extWidthRange: ClosedRange<CGFloat> = 40...120
+    static let sizeWidthRange: ClosedRange<CGFloat> = 55...150
+    static let modifiedWidthRange: ClosedRange<CGFloat> = 90...240
 
     @Published var nameWidth: CGFloat = 260
-    @Published var pathWidth: CGFloat = 260
-    @Published var extWidth: CGFloat = 68
-    @Published var sizeWidth: CGFloat = 92
-    @Published var modifiedWidth: CGFloat = 150
+    @Published var pathWidth: CGFloat = 400
+    @Published var extWidth: CGFloat = 40
+    @Published var sizeWidth: CGFloat = 60
+    @Published var createdWidth: CGFloat = 90
+    @Published var modifiedWidth: CGFloat = 90
 
-    func resolvedWidths(showPath: Bool,
-                        showExtension: Bool,
-                        showSize: Bool,
-                        showModifiedDate: Bool,
+    func resolvedWidths(showName: Bool, showPath: Bool, showExtension: Bool,
+                        showSize: Bool, showCreated: Bool, showModified: Bool, showTime: Bool,
                         availableWidth: CGFloat) -> ResolvedResultColumnWidths {
-        let visibleColumns = 1 + (showPath ? 1 : 0) + (showExtension ? 1 : 0) + (showSize ? 1 : 0) + (showModifiedDate ? 1 : 0)
-        let interColumnSpace = CGFloat(max(0, visibleColumns - 1)) * 10
-        let contentWidth = max(0, availableWidth - 12)
-        let fixedTrailingWidth = (showExtension ? extWidth : 0) + (showSize ? sizeWidth : 0) + (showModifiedDate ? modifiedWidth : 0)
-
-        if showPath {
-            let remainingPathWidth = contentWidth - interColumnSpace - nameWidth - fixedTrailingWidth
-            return ResolvedResultColumnWidths(
-                name: nameWidth,
-                path: max(Self.pathWidthRange.lowerBound, remainingPathWidth),
-                ext: extWidth,
-                size: sizeWidth,
-                modified: modifiedWidth
-            )
-        }
-
-        let remainingNameWidth = contentWidth - interColumnSpace - fixedTrailingWidth
-        return ResolvedResultColumnWidths(
-            name: max(Self.nameWidthRange.lowerBound, max(nameWidth, remainingNameWidth)),
-            path: pathWidth,
-            ext: extWidth,
-            size: sizeWidth,
-            modified: modifiedWidth
-        )
+        let count = [showName, showPath, showExtension, showSize, showCreated, showModified].filter { $0 }.count
+        let space = CGFloat(max(0, count - 1)) * 10
+        let created = showTime ? max(createdWidth, 140) : createdWidth
+        let modified = showTime ? max(modifiedWidth, 140) : modifiedWidth
+        let fixed = (showExtension ? extWidth : 0) + (showSize ? sizeWidth : 0)
+            + (showCreated ? created : 0) + (showModified ? modified : 0)
+        let remaining = max(0, availableWidth - 12 - space - fixed)
+        let resolvedPath = showPath ? (showName ? min(pathWidth, max(0, remaining - 80)) : remaining) : 0
+        let resolvedName = showName ? max(0, remaining - resolvedPath) : 0
+        return ResolvedResultColumnWidths(name: resolvedName, path: resolvedPath,
+                                          ext: extWidth, size: sizeWidth, created: created, modified: modified)
     }
 }
 
